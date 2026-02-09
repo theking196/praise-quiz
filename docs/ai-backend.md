@@ -302,3 +302,12 @@ curl -G \"https://example.test/api/practice-drills\" \\
 ## Livewire Integration Notes
 - Livewire contestant components can call `/api/questions` and `/api/responses` to drive practice sessions.
 - Teacher dashboards can consume `/api/teacher/students` and `/api/teacher/question-sets` for monitoring.
+<<<<<<< codex/design-ai-backend-for-church-competition-7ar9fc
+
+## Frontend Livewire Components
+The Blade templates under `resources/views/` and Livewire classes under `app/Http/Livewire/` provide a drop-in UI scaffold:
+- Contestant dashboard, CBT session, performance analytics
+- Teacher dashboard with filters and analytics
+- Student analytics and leaderboard views
+=======
+>>>>>>> main
