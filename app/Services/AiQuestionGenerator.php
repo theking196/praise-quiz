@@ -11,6 +11,10 @@ use App\Models\Question;
 
 class AiQuestionGenerator
 {
+    public function __construct(private AiProviderService $aiProviderService)
+    {
+    }
+
     /**
      * Generate a mixed question list for a contestant profile.
      */
@@ -72,6 +76,54 @@ class AiQuestionGenerator
         return $questions;
     }
 
+    /**
+     * Generate AI-only questions with avoid list and seed examples.
+     */
+    public function generateNewQuestions(
+        Contestant $contestant,
+        int $count,
+        int $difficulty,
+        array $avoidIds,
+        array $seedQuestions
+    ): array {
+        if ($count <= 0) {
+            return [];
+        }
+
+        $prompt = sprintf(
+            'Generate %d %s questions for age group %s at difficulty %d. Avoid question IDs: %s.',
+            $count,
+            $contestant->category->code,
+            $contestant->ageGroup->name,
+            $difficulty,
+            implode(',', $avoidIds)
+        );
+
+        $seed = array_map(static function (Question $question) {
+            return [
+                'content' => $question->content,
+                'type' => $question->type,
+                'lesson_reference' => $question->lesson_reference,
+                'topic' => $question->topic,
+            ];
+        }, $seedQuestions);
+
+        $this->aiProviderService->generatePrompt($prompt, [
+            'seed_examples' => $seed,
+        ]);
+
+        $questions = [];
+        for ($i = 1; $i <= $count; $i++) {
+            $questions[] = $this->buildQuestion([
+                'category' => $contestant->category->code,
+                'age_group' => $contestant->ageGroup->name,
+                'difficulty' => $difficulty,
+            ], $i);
+        }
+
+        return $questions;
+    }
+
     public function mixQuestions(
         array $aiQuestions,
         array $missedQuestions,
@@ -112,6 +164,7 @@ class AiQuestionGenerator
                     'options' => $question->options,
                     'correct_answer' => $question->correct_answer,
                     'lesson_reference' => $question->lesson_reference,
+                    'topic' => $question->topic,
                 ];
             }
 
@@ -153,6 +206,7 @@ class AiQuestionGenerator
             'options' => $this->templateOptions($seed['category']),
             'correct_answer' => $this->templateAnswer($seed['category']),
             'lesson_reference' => $seed['category'] === 'bible_quiz' ? 'Luke 15:11-32' : null,
+            'topic' => $seed['category'] === 'bible_quiz' ? 'leadership' : null,
             'prompt_used' => $prompt,
         ];
     }

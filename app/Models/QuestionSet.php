@@ -18,6 +18,7 @@ class QuestionSet extends Model
         'category_id',
         'age_group_id',
         'name',
+        'session_type',
     ];
 
     public function items(): HasMany

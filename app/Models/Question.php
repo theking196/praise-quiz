@@ -21,7 +21,10 @@ class Question extends Model
         'options',
         'correct_answer',
         'lesson_reference',
+        'topic',
         'difficulty',
+        'use_count',
+        'last_used_at',
         'created_by',
         'approved_at',
         'approved_by',
@@ -30,6 +33,7 @@ class Question extends Model
     protected $casts = [
         'options' => 'array',
         'approved_at' => 'datetime',
+        'last_used_at' => 'datetime',
     ];
 
     public function category(): BelongsTo

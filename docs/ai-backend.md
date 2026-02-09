@@ -18,6 +18,67 @@ Laravel migrations are provided in `database/migrations/` for a standard `php ar
 The `AiQuestionGenerator` service accepts a contestant model and returns a structured payload containing the prompt used, question metadata, and an answer key. The generator can mix AI content with missed/correct history based on `ai_settings`.
 `AiProviderService` is a placeholder for OpenAI or local LLM integration.
 
+## Adaptive QuestionSetGenerator Design
+The adaptive generator mixes new AI questions, missed questions, and older correct questions per session.
+
+### Pseudocode / Service Flow
+1. Read `ai_settings` mix percentages and difficulty caps.
+2. Query `question_history` to avoid repeats.
+3. Load missed questions (incorrect responses) and older correct questions ordered by `last_used_at` / `use_count`.
+4. Calculate targets for `new/missed/old` and apply fallbacks (new user → all new).
+5. Ask AI for `new` questions with avoid list and seed examples.
+6. Persist questions and question sets, update usage stats and analytics.
+
+### Sample SQL Queries
+```sql
+-- Missed questions per contestant
+SELECT q.*
+FROM contestant_responses r
+JOIN questions q ON q.id = r.question_id
+WHERE r.contestant_id = :contestant_id
+  AND r.is_correct = 0
+ORDER BY r.id DESC
+LIMIT :limit;
+
+-- Older correct questions for spaced repetition
+SELECT q.*
+FROM contestant_responses r
+JOIN questions q ON q.id = r.question_id
+WHERE r.contestant_id = :contestant_id
+  AND r.is_correct = 1
+ORDER BY q.last_used_at ASC, q.use_count ASC
+LIMIT :limit;
+```
+
+### Example Input
+```json
+{
+  "contestant_id": 42,
+  "category_id": 2,
+  "age_group_id": 1,
+  "difficulty_level": 2,
+  "num_questions": 10,
+  "session_type": "practice"
+}
+```
+
+### Example Output
+```json
+{
+  "question_set_id": 120,
+  "breakdown": {"new": 5, "missed": 3, "old": 2},
+  "questions": [
+    {"question_id": 1001, "sequence_order": 1, "points": 10}
+  ]
+}
+```
+
+### Configuration Keys
+- `ai_settings.mix_new_percentage`
+- `ai_settings.mix_missed_percentage`
+- `ai_settings.mix_old_percentage`
+- `ai_settings.max_difficulty_by_age_group`
+
 ### Example Output
 ```json
 {
@@ -302,12 +363,10 @@ curl -G \"https://example.test/api/practice-drills\" \\
 ## Livewire Integration Notes
 - Livewire contestant components can call `/api/questions` and `/api/responses` to drive practice sessions.
 - Teacher dashboards can consume `/api/teacher/students` and `/api/teacher/question-sets` for monitoring.
-<<<<<<< codex/design-ai-backend-for-church-competition-7ar9fc
 
 ## Frontend Livewire Components
 The Blade templates under `resources/views/` and Livewire classes under `app/Http/Livewire/` provide a drop-in UI scaffold:
 - Contestant dashboard, CBT session, performance analytics
 - Teacher dashboard with filters and analytics
 - Student analytics and leaderboard views
-=======
->>>>>>> main
+
