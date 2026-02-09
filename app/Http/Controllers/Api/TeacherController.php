@@ -60,4 +60,44 @@ class TeacherController extends Controller
             'responses' => $query->limit(50)->get(),
         ];
     }
+
+    /**
+     * Teacher/director analytics summary for dashboards.
+     */
+    public function analytics(Request $request): array
+    {
+        $data = $request->validate([
+            'competition_id' => ['sometimes', 'integer'],
+        ]);
+
+        $query = Contestant::query()->with('performanceAnalytics');
+
+        if (isset($data['competition_id'])) {
+            $query->where('competition_id', $data['competition_id']);
+        }
+
+        return [
+            'analytics' => $query->limit(100)->get(),
+        ];
+    }
+
+    /**
+     * Recent question sets for review.
+     */
+    public function questionSets(Request $request): array
+    {
+        $data = $request->validate([
+            'competition_id' => ['sometimes', 'integer'],
+        ]);
+
+        $query = \App\Models\QuestionSet::query()->with('items')->latest('id');
+
+        if (isset($data['competition_id'])) {
+            $query->where('competition_id', $data['competition_id']);
+        }
+
+        return [
+            'question_sets' => $query->limit(20)->get(),
+        ];
+    }
 }

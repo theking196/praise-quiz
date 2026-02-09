@@ -46,4 +46,35 @@ class QuestionController extends Controller
             'mix_config' => $payload['mix_config'],
         ];
     }
+
+    /**
+     * Fetch AI-generated questions via query parameters.
+     */
+    public function questions(Request $request): array
+    {
+        $data = $request->validate([
+            'contestant_id' => ['required', 'integer'],
+            'category_id' => ['required', 'integer'],
+            'difficulty_level' => ['required', 'integer', 'min:1'],
+            'number_of_questions' => ['sometimes', 'integer', 'min:1', 'max:100'],
+        ]);
+
+        $contestant = Contestant::query()->with(['category', 'ageGroup'])->findOrFail($data['contestant_id']);
+
+        $payload = $this->questionSetGenerator->generate(
+            $contestant,
+            $data['category_id'],
+            $contestant->age_group_id,
+            $data['difficulty_level'],
+            $data['number_of_questions'] ?? 10
+        );
+
+        return [
+            'contestant' => $contestant,
+            'question_set' => $payload['question_set'],
+            'items' => $payload['items'],
+            'analysis' => $payload['analysis'],
+            'mix_config' => $payload['mix_config'],
+        ];
+    }
 }

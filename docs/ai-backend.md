@@ -161,6 +161,7 @@ Analytics responses include leaderboards, weak topic summaries, and recent quest
 See `routes/api.php` for the proposed API map:
 - Generate question sets per contestant
 - Submit responses and auto-score
+- Fetch AI-generated question sets via `/api/questions`
 - Analytics leaderboards, weak topics, averages, drill recommendations, recent sets, export
 - Admin endpoints for AI settings and question moderation
 
@@ -181,6 +182,16 @@ Admin APIs allow setting mix percentages and maximum difficulty by age group, al
 ```
 
 ## Contestant API Examples
+### Fetch Questions (GET /api/questions)
+```json
+{
+  "contestant_id": 42,
+  "category_id": 2,
+  "difficulty_level": 2,
+  "number_of_questions": 10
+}
+```
+
 ### Submit Response
 ```json
 {
@@ -225,6 +236,16 @@ Admin APIs allow setting mix percentages and maximum difficulty by age group, al
 }
 ```
 
+### Practice Drills
+```json
+{
+  "contestant_id": 42,
+  "drills": [
+    {"topic": "prophets", "target_questions": 6, "focus": "timed_practice"}
+  ]
+}
+```
+
 ## Teacher/Director API Examples
 ### Fetch Students
 ```json
@@ -259,3 +280,25 @@ Apply `auth` and `role` middleware on API routes to enforce access:
 - Contestant routes: `role:contestant`
 - Teacher/director routes: `role:teacher|director`
 - Admin routes: `role:admin`
+
+## HTTP Test Examples (cURL)
+```bash
+curl -G \"https://example.test/api/questions\" \\
+  --data-urlencode \"contestant_id=42\" \\
+  --data-urlencode \"category_id=2\" \\
+  --data-urlencode \"difficulty_level=2\"
+
+curl -X POST \"https://example.test/api/responses\" \\
+  -H \"Content-Type: application/json\" \\
+  -d '{\"contestant_id\":42,\"question_id\":1001,\"response\":\"Joshua\",\"is_correct\":true,\"time_taken\":12.5,\"difficulty\":2,\"question_type\":\"bible_quiz\"}'
+
+curl -G \"https://example.test/api/performance\" \\
+  --data-urlencode \"contestant_id=42\"
+
+curl -G \"https://example.test/api/practice-drills\" \\
+  --data-urlencode \"contestant_id=42\"
+```
+
+## Livewire Integration Notes
+- Livewire contestant components can call `/api/questions` and `/api/responses` to drive practice sessions.
+- Teacher dashboards can consume `/api/teacher/students` and `/api/teacher/question-sets` for monitoring.

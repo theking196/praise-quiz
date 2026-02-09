@@ -12,6 +12,10 @@ return [
     'POST /api/contestants/{contestantId}/question-set' => [QuestionController::class, 'questionSet'],
     'POST /api/contestants/{contestantId}/responses' => [ResponseController::class, 'submit'],
     'GET /api/contestants/{contestantId}/analytics' => [AnalyticsController::class, 'performance'],
+    'GET /api/questions' => [QuestionController::class, 'questions'],
+    'POST /api/responses' => [ResponseController::class, 'submitGlobal'],
+    'GET /api/performance' => [AnalyticsController::class, 'performanceQuery'],
+    'GET /api/practice-drills' => [AnalyticsController::class, 'practiceDrills'],
 
     'GET /api/analytics/leaderboard' => [AnalyticsController::class, 'leaderboard'],
     'GET /api/analytics/weak-topics' => [AnalyticsController::class, 'weakTopics'],
@@ -22,6 +26,8 @@ return [
 
     'GET /api/teacher/students' => [TeacherController::class, 'students'],
     'GET /api/teacher/responses' => [TeacherController::class, 'recentResponses'],
+    'GET /api/teacher/analytics' => [TeacherController::class, 'analytics'],
+    'GET /api/teacher/question-sets' => [TeacherController::class, 'questionSets'],
 
     'GET /api/admin/ai-settings' => [AdminController::class, 'settings'],
     'POST /api/admin/ai-settings' => [AdminController::class, 'storeSettings'],

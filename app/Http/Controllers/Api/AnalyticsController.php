@@ -34,6 +34,27 @@ class AnalyticsController extends Controller
     }
 
     /**
+     * Return analytics history using query parameters.
+     */
+    public function performanceQuery(Request $request): array
+    {
+        $data = $request->validate([
+            'contestant_id' => ['required', 'integer'],
+            'limit' => ['sometimes', 'integer', 'min:1', 'max:50'],
+        ]);
+
+        $limit = $data['limit'] ?? 10;
+
+        return [
+            'analytics' => PerformanceAnalytics::query()
+                ->where('contestant_id', $data['contestant_id'])
+                ->latest('id')
+                ->limit($limit)
+                ->get(),
+        ];
+    }
+
+    /**
      * Leaderboard view filtered by age group, category, or competition year.
      */
     public function leaderboard(Request $request): array
@@ -82,6 +103,34 @@ class AnalyticsController extends Controller
 
         return [
             'weak_topics' => $query->get()->pluck('weak_topics')->filter()->values(),
+        ];
+    }
+
+    /**
+     * Retrieve drills tailored to a contestant's weak topics.
+     */
+    public function practiceDrills(Request $request): array
+    {
+        $data = $request->validate([
+            'contestant_id' => ['required', 'integer'],
+        ]);
+
+        $analytics = PerformanceAnalytics::query()
+            ->where('contestant_id', $data['contestant_id'])
+            ->latest('id')
+            ->first();
+
+        $drills = collect($analytics?->weak_topics ?? [])->map(static function ($topic) {
+            return [
+                'topic' => $topic['topic'] ?? 'general',
+                'target_questions' => max(5, ($topic['mistakes'] ?? 1) * 2),
+                'focus' => 'timed_practice',
+            ];
+        });
+
+        return [
+            'contestant_id' => $data['contestant_id'],
+            'drills' => $drills,
         ];
     }
 
