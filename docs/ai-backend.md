@@ -12,8 +12,11 @@ Use `database/schema.sql` to create the baseline tables:
 - Question history to prevent repeats
 - AI settings for configurable question mixing
 
+Laravel migrations are provided in `database/migrations/` for a standard `php artisan migrate` workflow.
+
 ## AI Question Generation
 The `AiQuestionGenerator` service accepts a contestant model and returns a structured payload containing the prompt used, question metadata, and an answer key. The generator can mix AI content with missed/correct history based on `ai_settings`.
+`AiProviderService` is a placeholder for OpenAI or local LLM integration.
 
 ### Example Output
 ```json
@@ -163,3 +166,96 @@ See `routes/api.php` for the proposed API map:
 
 ## Admin Controls
 Admin APIs allow setting mix percentages and maximum difficulty by age group, along with approving AI-generated questions for production use.
+
+### Example AI Settings Payload
+```json
+{
+  "mix_new_percentage": 50,
+  "mix_missed_percentage": 30,
+  "mix_old_percentage": 20,
+  "max_difficulty_by_age_group": {
+    "1": 2,
+    "2": 3
+  }
+}
+```
+
+## Contestant API Examples
+### Submit Response
+```json
+{
+  "question_id": 1001,
+  "response": "Joshua",
+  "is_correct": true,
+  "time_taken": 12.5,
+  "points": 10,
+  "difficulty": 2,
+  "question_type": "bible_quiz",
+  "topic": "leadership"
+}
+```
+
+### Submit Essay Response
+```json
+{
+  "question_id": 2002,
+  "response": "Essay response body",
+  "is_correct": true,
+  "time_taken": 180,
+  "difficulty": 2,
+  "question_type": "essay",
+  "rubric": {
+    "content": 10,
+    "scripture_application": 8,
+    "structure": 7
+  }
+}
+```
+
+### Fetch Analytics
+```json
+{
+  "analytics": [
+    {
+      "contestant_id": 42,
+      "total_score": 275,
+      "weak_topics": [{"topic": "prophets", "mistakes": 3}]
+    }
+  ]
+}
+```
+
+## Teacher/Director API Examples
+### Fetch Students
+```json
+{
+  "students": [
+    {
+      "id": 42,
+      "category_id": 2,
+      "age_group_id": 1,
+      "competition_id": 2024
+    }
+  ]
+}
+```
+
+### Recent Responses
+```json
+{
+  "responses": [
+    {
+      "contestant_id": 42,
+      "question_id": 1001,
+      "is_correct": true,
+      "time_taken": 12.5
+    }
+  ]
+}
+```
+
+## Authentication & Roles
+Apply `auth` and `role` middleware on API routes to enforce access:
+- Contestant routes: `role:contestant`
+- Teacher/director routes: `role:teacher|director`
+- Admin routes: `role:admin`

@@ -8,6 +8,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * Grouped question set for drills or competition sessions.
+ */
 class QuestionSet extends Model
 {
     protected $fillable = [

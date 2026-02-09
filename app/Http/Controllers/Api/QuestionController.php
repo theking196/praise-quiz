@@ -16,6 +16,9 @@ class QuestionController extends Controller
     ) {
     }
 
+    /**
+     * Generate an adaptive question set for a contestant.
+     */
     public function questionSet(Request $request, int $contestantId): array
     {
         $data = $request->validate([

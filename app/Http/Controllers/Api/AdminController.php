@@ -11,6 +11,9 @@ use Illuminate\Http\Request;
 
 class AdminController extends Controller
 {
+    /**
+     * Retrieve latest AI settings for admin dashboards.
+     */
     public function settings(): array
     {
         return [
@@ -18,6 +21,9 @@ class AdminController extends Controller
         ];
     }
 
+    /**
+     * Store new AI settings for mix ratios and difficulty caps.
+     */
     public function storeSettings(Request $request): array
     {
         $data = $request->validate([
@@ -34,6 +40,9 @@ class AdminController extends Controller
         ];
     }
 
+    /**
+     * Approve a question for production use.
+     */
     public function approveQuestion(Request $request, int $questionId): array
     {
         $question = Question::query()->findOrFail($questionId);

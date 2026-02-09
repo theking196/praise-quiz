@@ -6,6 +6,9 @@ namespace App\Services;
 
 class ScoringService
 {
+    /**
+     * Score CBT/quiz style responses with difficulty multiplier + time bonus.
+     */
     public function scoreResponse(array $response, int $difficulty): array
     {
         $basePoints = $response['points'] ?? 10;
@@ -26,6 +29,46 @@ class ScoringService
         ];
     }
 
+    /**
+     * Score spelling bee responses with accuracy weighting.
+     */
+    public function scoreSpellingBee(array $response, int $difficulty): array
+    {
+        $basePoints = $response['points'] ?? 10;
+        $accuracy = $response['accuracy'] ?? 1;
+        $timeTaken = $response['time_taken'] ?? 0;
+
+        $difficultyMultiplier = 1 + ($difficulty * 0.2);
+        $timeBonus = $this->calculateTimeBonus($timeTaken);
+        $score = (int) round($basePoints * $accuracy * $difficultyMultiplier + $timeBonus);
+
+        return [
+            'score' => $score,
+            'accuracy' => $accuracy,
+            'difficulty_multiplier' => $difficultyMultiplier,
+            'time_bonus' => $timeBonus,
+        ];
+    }
+
+    /**
+     * Score recitation with accuracy minus fluency penalties.
+     */
+    public function scoreRecitation(array $response): array
+    {
+        $accuracy = $response['accuracy'] ?? 0;
+        $fluencyPenalty = $response['fluency_penalty'] ?? 0;
+        $score = max(0, (int) round($accuracy - $fluencyPenalty));
+
+        return [
+            'score' => $score,
+            'accuracy' => $accuracy,
+            'fluency_penalty' => $fluencyPenalty,
+        ];
+    }
+
+    /**
+     * Rubric scoring for essays.
+     */
     public function scoreEssay(array $rubric): array
     {
         $content = $rubric['content'] ?? 0;
@@ -40,6 +83,27 @@ class ScoringService
                 'content' => $content,
                 'scripture_application' => $scripture,
                 'structure' => $structure,
+            ],
+        ];
+    }
+
+    /**
+     * Rubric scoring for debates.
+     */
+    public function scoreDebate(array $rubric): array
+    {
+        $argument = $rubric['argument_strength'] ?? 0;
+        $scripture = $rubric['scripture_application'] ?? 0;
+        $delivery = $rubric['delivery'] ?? 0;
+
+        $score = $argument + $scripture + $delivery;
+
+        return [
+            'score' => $score,
+            'breakdown' => [
+                'argument_strength' => $argument,
+                'scripture_application' => $scripture,
+                'delivery' => $delivery,
             ],
         ];
     }

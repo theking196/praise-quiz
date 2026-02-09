@@ -13,6 +13,29 @@ use Illuminate\Support\Facades\DB;
 
 class AnalyticsController extends Controller
 {
+    /**
+     * Return analytics history for a contestant.
+     */
+    public function performance(Request $request, int $contestantId): array
+    {
+        $data = $request->validate([
+            'limit' => ['sometimes', 'integer', 'min:1', 'max:50'],
+        ]);
+
+        $limit = $data['limit'] ?? 10;
+
+        return [
+            'analytics' => PerformanceAnalytics::query()
+                ->where('contestant_id', $contestantId)
+                ->latest('id')
+                ->limit($limit)
+                ->get(),
+        ];
+    }
+
+    /**
+     * Leaderboard view filtered by age group, category, or competition year.
+     */
     public function leaderboard(Request $request): array
     {
         $data = $request->validate([
@@ -43,6 +66,9 @@ class AnalyticsController extends Controller
         ];
     }
 
+    /**
+     * Weak topic heatmap across contestants or per contestant.
+     */
     public function weakTopics(Request $request): array
     {
         $data = $request->validate([
@@ -59,6 +85,9 @@ class AnalyticsController extends Controller
         ];
     }
 
+    /**
+     * Average scores for dashboard trend analysis.
+     */
     public function averageScores(Request $request): array
     {
         $data = $request->validate([
@@ -84,6 +113,9 @@ class AnalyticsController extends Controller
         ];
     }
 
+    /**
+     * Drill recommendations derived from weak topics.
+     */
     public function drillRecommendations(Request $request): array
     {
         $data = $request->validate([
@@ -113,6 +145,9 @@ class AnalyticsController extends Controller
         ];
     }
 
+    /**
+     * Recent adaptive question sets for teacher/director dashboards.
+     */
     public function recentQuestionSets(Request $request): array
     {
         $data = $request->validate([
@@ -129,6 +164,9 @@ class AnalyticsController extends Controller
         ];
     }
 
+    /**
+     * Export reporting data (placeholder for CSV/XLSX streaming).
+     */
     public function exportReport(Request $request): array
     {
         $data = $request->validate([

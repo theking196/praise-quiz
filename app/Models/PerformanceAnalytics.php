@@ -7,6 +7,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * Aggregated analytics snapshots for a contestant.
+ */
 class PerformanceAnalytics extends Model
 {
     protected $fillable = [

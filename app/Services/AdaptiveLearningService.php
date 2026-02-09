@@ -9,6 +9,9 @@ use App\Models\PerformanceAnalytics;
 
 class AdaptiveLearningService
 {
+    /**
+     * Analyze responses to determine weak topics, drills, and progression signals.
+     */
     public function analyzeResponses(array $responses, ?PerformanceAnalytics $analytics = null): array
     {
         $topicErrors = [];
@@ -66,6 +69,9 @@ class AdaptiveLearningService
         return $contestant;
     }
 
+    /**
+     * Persist a snapshot of performance analytics for dashboards and history.
+     */
     public function persistAnalytics(Contestant $contestant, array $analysis, int $scoreDelta = 0): PerformanceAnalytics
     {
         $analytics = PerformanceAnalytics::query()

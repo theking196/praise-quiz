@@ -20,6 +20,9 @@ class ResponseController extends Controller
     ) {
     }
 
+    /**
+     * Store a response and compute scoring + adaptive analytics.
+     */
     public function submit(Request $request, int $contestantId): array
     {
         $data = $request->validate([
@@ -30,6 +33,10 @@ class ResponseController extends Controller
             'points' => ['sometimes', 'integer'],
             'topic' => ['sometimes', 'string'],
             'difficulty' => ['required', 'integer', 'min:1'],
+            'question_type' => ['required', 'string'],
+            'accuracy' => ['sometimes', 'numeric'],
+            'fluency_penalty' => ['sometimes', 'numeric'],
+            'rubric' => ['sometimes', 'array'],
         ]);
 
         $contestant = Contestant::query()->findOrFail($contestantId);
@@ -42,10 +49,18 @@ class ResponseController extends Controller
             'time_taken' => $data['time_taken'],
         ]);
 
-        $scoreData = $this->scoringService->scoreResponse($data, $data['difficulty']);
+        $scoreData = match ($data['question_type']) {
+            'spelling_bee' => $this->scoringService->scoreSpellingBee($data, $data['difficulty']),
+            'recitation' => $this->scoringService->scoreRecitation($data),
+            'essay' => $this->scoringService->scoreEssay($data['rubric'] ?? []),
+            'debate' => $this->scoringService->scoreDebate($data['rubric'] ?? []),
+            default => $this->scoringService->scoreResponse($data, $data['difficulty']),
+        };
         $analytics = PerformanceAnalytics::query()->where('contestant_id', $contestant->id)->latest('id')->first();
         $analysis = $this->adaptiveService->analyzeResponses([$data], $analytics);
         $this->adaptiveService->persistAnalytics($contestant, $analysis, $scoreData['score']);
+        $contestant->current_xp += $scoreData['score'];
+        $contestant->save();
         $this->adaptiveService->updateContestantProfile($contestant, $analysis);
 
         return [

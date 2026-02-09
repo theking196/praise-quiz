@@ -22,6 +22,9 @@ class QuestionSetGenerator
     ) {
     }
 
+    /**
+     * Build an adaptive question set with mixed AI and historical questions.
+     */
     public function generate(
         Contestant $contestant,
         int $categoryId,
@@ -30,6 +33,7 @@ class QuestionSetGenerator
         int $numberOfQuestions
     ): array {
         $settings = AiSetting::query()->latest('id')->first();
+        $difficulty = $this->applyMaxDifficulty($settings, $ageGroupId, $difficulty);
         $mixConfig = [
             'mix_new_percentage' => $settings?->mix_new_percentage ?? 50,
             'mix_missed_percentage' => $settings?->mix_missed_percentage ?? 30,
@@ -44,7 +48,7 @@ class QuestionSetGenerator
         $missedQuestions = $this->fetchPastQuestions($contestant->id, false, $numberOfQuestions, $recentHistory);
         $correctQuestions = $this->fetchPastQuestions($contestant->id, true, $numberOfQuestions, $recentHistory);
 
-        $aiQuestions = $this->aiQuestionGenerator->buildAiQuestions($contestant, $numberOfQuestions);
+        $aiQuestions = $this->aiQuestionGenerator->buildAiQuestions($contestant, $numberOfQuestions, $difficulty);
         $mixedQuestions = $this->aiQuestionGenerator->mixQuestions(
             $aiQuestions,
             $missedQuestions,
@@ -153,5 +157,17 @@ class QuestionSetGenerator
                 'asked_at' => now(),
             ]);
         }
+    }
+
+    private function applyMaxDifficulty(?AiSetting $settings, int $ageGroupId, int $difficulty): int
+    {
+        $limits = $settings?->max_difficulty_by_age_group ?? [];
+        $maxDifficulty = $limits[$ageGroupId] ?? null;
+
+        if ($maxDifficulty === null) {
+            return $difficulty;
+        }
+
+        return (int) min($difficulty, $maxDifficulty);
     }
 }

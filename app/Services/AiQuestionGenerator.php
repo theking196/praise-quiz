@@ -11,6 +11,9 @@ use App\Models\Question;
 
 class AiQuestionGenerator
 {
+    /**
+     * Generate a mixed question list for a contestant profile.
+     */
     public function generate(Contestant $contestant, int $count = 10): array
     {
         $settings = AiSetting::query()->latest('id')->first();
@@ -54,14 +57,15 @@ class AiQuestionGenerator
         ];
     }
 
-    public function buildAiQuestions(Contestant $contestant, int $count): array
+    public function buildAiQuestions(Contestant $contestant, int $count, ?int $difficulty = null): array
     {
+        $difficultyLevel = $difficulty ?? $contestant->difficulty_level;
         $questions = [];
         for ($i = 1; $i <= $count; $i++) {
             $questions[] = $this->buildQuestion([
                 'category' => $contestant->category->code,
                 'age_group' => $contestant->ageGroup->name,
-                'difficulty' => $contestant->difficulty_level,
+                'difficulty' => $difficultyLevel,
             ], $i);
         }
 
