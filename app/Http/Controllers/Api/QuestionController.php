@@ -4,24 +4,43 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api;
 
-use App\Services\AiQuestionGenerator;
-use App\Services\AdaptiveLearningService;
+use App\Http\Controllers\Controller;
+use App\Models\Contestant;
+use App\Services\QuestionSetGenerator;
+use Illuminate\Http\Request;
 
-class QuestionController
+class QuestionController extends Controller
 {
     public function __construct(
-        private AiQuestionGenerator $generator,
-        private AdaptiveLearningService $adaptiveService
+        private QuestionSetGenerator $questionSetGenerator
     ) {
     }
 
-    public function fetch(array $contestantProfile, int $count = 10): array
+    public function questionSet(Request $request, int $contestantId): array
     {
-        return $this->generator->generate($contestantProfile, $count);
-    }
+        $data = $request->validate([
+            'category_id' => ['required', 'integer'],
+            'age_group_id' => ['required', 'integer'],
+            'difficulty' => ['required', 'integer', 'min:1'],
+            'number_of_questions' => ['required', 'integer', 'min:1', 'max:100'],
+        ]);
 
-    public function drills(array $responses): array
-    {
-        return $this->adaptiveService->analyzeResponses($responses);
+        $contestant = Contestant::query()->with(['category', 'ageGroup'])->findOrFail($contestantId);
+
+        $payload = $this->questionSetGenerator->generate(
+            $contestant,
+            $data['category_id'],
+            $data['age_group_id'],
+            $data['difficulty'],
+            $data['number_of_questions']
+        );
+
+        return [
+            'contestant' => $contestant,
+            'question_set' => $payload['question_set'],
+            'items' => $payload['items'],
+            'analysis' => $payload['analysis'],
+            'mix_config' => $payload['mix_config'],
+        ];
     }
 }

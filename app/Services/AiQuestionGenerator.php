@@ -4,29 +4,123 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Models\AiSetting;
+use App\Models\Contestant;
+use App\Models\ContestantResponse;
+use App\Models\Question;
+
 class AiQuestionGenerator
 {
-    public function generate(array $contestantProfile, int $count = 10): array
+    public function generate(Contestant $contestant, int $count = 10): array
     {
-        $category = $contestantProfile['category_code'] ?? 'bible_quiz';
-        $ageGroup = $contestantProfile['age_group'] ?? '9-12';
-        $difficulty = $contestantProfile['difficulty_level'] ?? 1;
+        $settings = AiSetting::query()->latest('id')->first();
+        $mixConfig = $this->resolveMixConfig($settings);
 
-        $questionSeed = [
-            'category' => $category,
-            'age_group' => $ageGroup,
-            'difficulty' => $difficulty,
-        ];
+        $missedQuestions = ContestantResponse::query()
+            ->where('contestant_id', $contestant->id)
+            ->where('is_correct', false)
+            ->with('question')
+            ->latest('id')
+            ->limit($count)
+            ->get()
+            ->pluck('question')
+            ->filter()
+            ->all();
 
-        $questions = [];
-        for ($i = 1; $i <= $count; $i++) {
-            $questions[] = $this->buildQuestion($questionSeed, $i);
-        }
+        $correctQuestions = ContestantResponse::query()
+            ->where('contestant_id', $contestant->id)
+            ->where('is_correct', true)
+            ->with('question')
+            ->latest('id')
+            ->limit($count)
+            ->get()
+            ->pluck('question')
+            ->filter()
+            ->all();
+
+        $aiQuestions = $this->buildAiQuestions($contestant, $count);
+        $mixed = $this->mixQuestions($aiQuestions, $missedQuestions, $correctQuestions, $mixConfig, $count);
 
         return [
-            'generated_at' => date('c'),
-            'contestant_profile' => $questionSeed,
-            'questions' => $questions,
+            'generated_at' => now()->toISOString(),
+            'contestant_profile' => [
+                'contestant_id' => $contestant->id,
+                'category' => $contestant->category->code,
+                'age_group' => $contestant->ageGroup->name,
+                'difficulty' => $contestant->difficulty_level,
+            ],
+            'mix_config' => $mixConfig,
+            'questions' => $mixed,
+        ];
+    }
+
+    public function buildAiQuestions(Contestant $contestant, int $count): array
+    {
+        $questions = [];
+        for ($i = 1; $i <= $count; $i++) {
+            $questions[] = $this->buildQuestion([
+                'category' => $contestant->category->code,
+                'age_group' => $contestant->ageGroup->name,
+                'difficulty' => $contestant->difficulty_level,
+            ], $i);
+        }
+
+        return $questions;
+    }
+
+    public function mixQuestions(
+        array $aiQuestions,
+        array $missedQuestions,
+        array $correctQuestions,
+        array $mixConfig,
+        int $count
+    ): array {
+        if ($missedQuestions === [] && $correctQuestions === []) {
+            return array_slice($aiQuestions, 0, $count);
+        }
+
+        $newTarget = (int) round($count * ($mixConfig['mix_new_percentage'] / 100));
+        $missedTarget = (int) round($count * ($mixConfig['mix_missed_percentage'] / 100));
+        $oldTarget = $count - $newTarget - $missedTarget;
+
+        $aiSlice = array_slice($aiQuestions, 0, $newTarget);
+        $missedSlice = array_slice($missedQuestions, 0, $missedTarget);
+        $oldSlice = array_slice($correctQuestions, 0, $oldTarget);
+
+        $mixed = array_merge($aiSlice, $missedSlice, $oldSlice);
+
+        if (count($mixed) < $count) {
+            $remaining = $count - count($mixed);
+            $mixed = array_merge($mixed, array_slice($aiQuestions, $newTarget, $remaining));
+        }
+
+        return $this->normalizeQuestions($mixed);
+    }
+
+    private function normalizeQuestions(array $questions): array
+    {
+        return array_values(array_map(static function ($question) {
+            if ($question instanceof Question) {
+                return [
+                    'id' => $question->id,
+                    'content' => $question->content,
+                    'type' => $question->type,
+                    'options' => $question->options,
+                    'correct_answer' => $question->correct_answer,
+                    'lesson_reference' => $question->lesson_reference,
+                ];
+            }
+
+            return $question;
+        }, $questions));
+    }
+
+    private function resolveMixConfig(?AiSetting $settings): array
+    {
+        return [
+            'mix_new_percentage' => $settings?->mix_new_percentage ?? 50,
+            'mix_missed_percentage' => $settings?->mix_missed_percentage ?? 30,
+            'mix_old_percentage' => $settings?->mix_old_percentage ?? 20,
         ];
     }
 

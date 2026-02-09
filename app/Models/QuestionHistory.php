@@ -7,28 +7,27 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class PerformanceAnalytics extends Model
+class QuestionHistory extends Model
 {
     protected $fillable = [
         'contestant_id',
-        'total_score',
-        'average_time',
-        'weak_topics',
-        'learning_patterns',
-        'badges_earned',
-        'stage_reached',
-    ];
-
-    protected $casts = [
-        'weak_topics' => 'array',
-        'learning_patterns' => 'array',
-        'badges_earned' => 'array',
+        'question_id',
+        'asked_at',
     ];
 
     public $timestamps = false;
 
+    protected $casts = [
+        'asked_at' => 'datetime',
+    ];
+
     public function contestant(): BelongsTo
     {
         return $this->belongsTo(Contestant::class);
+    }
+
+    public function question(): BelongsTo
+    {
+        return $this->belongsTo(Question::class);
     }
 }

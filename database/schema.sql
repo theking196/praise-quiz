@@ -23,6 +23,15 @@ CREATE TABLE categories (
   code VARCHAR(50) NOT NULL UNIQUE
 );
 
+CREATE TABLE ai_settings (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  mix_new_percentage TINYINT UNSIGNED NOT NULL DEFAULT 50,
+  mix_missed_percentage TINYINT UNSIGNED NOT NULL DEFAULT 30,
+  mix_old_percentage TINYINT UNSIGNED NOT NULL DEFAULT 20,
+  max_difficulty_by_age_group JSON NULL,
+  updated_at TIMESTAMP NULL
+);
+
 CREATE TABLE competitions (
   id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
   year SMALLINT UNSIGNED NOT NULL,
@@ -60,10 +69,13 @@ CREATE TABLE questions (
   lesson_reference VARCHAR(200) NULL,
   difficulty TINYINT UNSIGNED NOT NULL,
   created_by VARCHAR(120) NOT NULL,
+  approved_at TIMESTAMP NULL,
+  approved_by BIGINT UNSIGNED NULL,
   created_at TIMESTAMP NULL,
   updated_at TIMESTAMP NULL,
   CONSTRAINT fk_questions_category FOREIGN KEY (category_id) REFERENCES categories(id),
-  CONSTRAINT fk_questions_age_group FOREIGN KEY (age_group_id) REFERENCES age_groups(id)
+  CONSTRAINT fk_questions_age_group FOREIGN KEY (age_group_id) REFERENCES age_groups(id),
+  CONSTRAINT fk_questions_approved_by FOREIGN KEY (approved_by) REFERENCES users(id)
 );
 
 CREATE TABLE question_sets (
@@ -107,6 +119,7 @@ CREATE TABLE performance_analytics (
   total_score INT UNSIGNED NOT NULL DEFAULT 0,
   average_time DECIMAL(8,2) NOT NULL DEFAULT 0,
   weak_topics JSON NULL,
+  learning_patterns JSON NULL,
   badges_earned JSON NULL,
   stage_reached VARCHAR(100) NULL,
   updated_at TIMESTAMP NULL,
